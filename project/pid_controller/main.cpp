@@ -220,7 +220,7 @@ int main() {
    *values
    **/
   PID pid_steer = PID();
-  pid_steer.Init(0.4, 0.001, 0.4, 1.2, -1.2);
+  pid_steer.Init(0.5, 0.002, 0.3, 1.2, -1.2);
 
   // initialize pid throttle
   /**
@@ -228,7 +228,7 @@ int main() {
    *initialize values
    **/
   PID pid_throttle = PID();
-  pid_throttle.Init(0.1, 0.0001, 0.05, 1.0, -1.0);
+  pid_throttle.Init(0.2, 0.001, 0.1, 1.0, -1.0);
 
   h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer,
                &i, &prev_timer](uWS::WebSocket<uWS::SERVER> ws, char* data,
@@ -309,21 +309,21 @@ int main() {
        * (computed as the angle between the current position and the
        * closest point in the trajectory) and the actual yaw of the car
        **/
-      double min_distance = std::numeric_limits<double>::max();
-      int index = 0;
-
-      for (int i = 0; i < x_points.size(); ++i) {
-        // calculate distance
-        double actual_distance = pow((x_position - x_points[i]), 2) +
-                                 pow((y_position - y_points[i]), 2);
-        if (actual_distance < min_distance) {
-          min_distance = actual_distance;
-          index = i;
+      error_steer = 0.0;
+      double min_dist = numeric_limits<double>::max();
+      int closest_idx = 0;
+      for (int i = 0; i < (int)x_points.size(); i++) {
+        double dx = x_position - x_points[i];
+        double dy = y_position - y_points[i];
+        double dist_sq = dx * dx + dy * dy;
+        if (dist_sq < min_dist) {
+          min_dist = dist_sq;
+          closest_idx = i;
         }
       }
-      error_steer = (angle_between_points(y_points[index], y_position,
-                                          x_points[index], x_position) -
-                     yaw);
+      double desired_yaw = angle_between_points(
+          x_position, y_position, x_points[closest_idx], y_points[closest_idx]);
+      error_steer = desired_yaw - yaw;
 
       /**
        * TODO (step 3): uncomment these lines
@@ -358,7 +358,11 @@ int main() {
        *position and the desired speed
        **/
       // modify the following line for step 2
-      error_throttle = v_points[index] - velocity;
+      desired_speed = 0.0;
+      if (!v_points.empty() && closest_idx < (int)v_points.size()) {
+        desired_speed = v_points[closest_idx];
+      }
+      error_throttle = desired_velocity - velocity;
 
       double throttle_output;
       double brake_output;
