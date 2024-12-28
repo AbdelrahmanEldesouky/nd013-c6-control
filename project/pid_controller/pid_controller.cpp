@@ -44,16 +44,9 @@ void PID::UpdateError(double cte) {
    * TODO: Update PID errors based on cte.
    **/
 
-  if (delta_time > 0) {
-    error_d = (cte - error_p) / delta_time;
-  } else {
-    error_d = 0.0;
-  }
+  error_d = (delta_time > 0) ? ((cte - error_p) / delta_time) : 0.0;
 
-  // Clamp integral error to prevent windup
   error_i += cte * delta_time;
-  error_i =
-      std::max(output_lim_min / Ki, std::min(output_lim_max / Ki, error_i));
 
   error_p = cte;
 }
@@ -64,8 +57,8 @@ double PID::TotalError() {
    * The code should return a value in the interval [output_lim_mini,
    * output_lim_maxi]
    */
-  double control = -Kp * error_p - Ki * error_i - Kd * error_d;
-  return std::max(output_lim_min, std::min(output_lim_max, control));
+  double control = (Kp * error_p) + (Ki * error_i) + (Kd * error_d);
+  return std::min(control, std::max(output_lim_max, output_lim_min));
 }
 
 double PID::UpdateDeltaTime(double new_delta_time) {

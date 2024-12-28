@@ -309,21 +309,19 @@ int main() {
        * (computed as the angle between the current position and the
        * closest point in the trajectory) and the actual yaw of the car
        **/
-      error_steer = 0.0;
-      double min_dist = numeric_limits<double>::max();
-      int closest_idx = 0;
-      for (int i = 0; i < (int)x_points.size(); i++) {
-        double dx = x_position - x_points[i];
-        double dy = y_position - y_points[i];
-        double dist_sq = dx * dx + dy * dy;
-        if (dist_sq < min_dist) {
-          min_dist = dist_sq;
-          closest_idx = i;
+      double min_distance = std::numeric_limits<double>::max();
+      int index = 0;
+      for (int i = 0; i < x_points.size(); ++i) {
+        double actual_distance = pow((x_position - x_points[i]), 2) +
+                                 pow((y_position - y_points[i]), 2);
+        if (actual_distance < min_distance) {
+          min_distance = actual_distance;
+          index = i;
         }
       }
-      double desired_yaw = angle_between_points(
-          x_position, y_position, x_points[closest_idx], y_points[closest_idx]);
-      error_steer = desired_yaw - yaw;
+      error_steer = (angle_between_points(x_position, y_position,
+                                          x_points[index], y_points[index]) -
+                     yaw);
 
       /**
        * TODO (step 3): uncomment these lines
@@ -358,11 +356,7 @@ int main() {
        *position and the desired speed
        **/
       // modify the following line for step 2
-      desired_speed = 0.0;
-      if (!v_points.empty() && closest_idx < (int)v_points.size()) {
-        desired_speed = v_points[closest_idx];
-      }
-      error_throttle = desired_velocity - velocity;
+      error_throttle = v_points[index] - velocity;
 
       double throttle_output;
       double brake_output;
